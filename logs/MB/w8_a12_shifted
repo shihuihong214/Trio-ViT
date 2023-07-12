@@ -1,0 +1,1313 @@
+You are using fake SyncBatchNorm2d who is actually the official BatchNorm2d
+==> Using Pytorch Dataset
+QuantModel(
+  (model): EfficientViTCls(
+    (backbone): EfficientViTBackbone(
+      (input_stem): OpSequential(
+        (op_list): ModuleList(
+          (0): ConvLayer(
+            (conv): QuantModule(
+              3, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)
+              (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): Hardswish()
+            )
+            (norm): StraightThrough()
+            (act): StraightThrough()
+          )
+          (1): QauntMBBlock(
+            (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+            (activation_function): StraightThrough()
+            (inv_res): ResidualBlock(
+              (main): DSConv(
+                (depth_conv): ConvLayer(
+                  (conv): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=16)
+                  (norm): StraightThrough()
+                  (act): Hardswish()
+                )
+                (point_conv): ConvLayer(
+                  (conv): Conv2d(16, 16, kernel_size=(1, 1), stride=(1, 1))
+                  (norm): StraightThrough()
+                )
+              )
+              (shortcut): IdentityLayer()
+            )
+            (conv): Sequential(
+              (0): QuantModule(
+                16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=16
+                (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): Hardswish()
+              )
+              (1): QuantModule(
+                16, 16, kernel_size=(1, 1), stride=(1, 1)
+                (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+              )
+            )
+          )
+        )
+      )
+      (stages): ModuleList(
+        (0): OpSequential(
+          (op_list): ModuleList(
+            (0): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(16, 64, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=64)
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  16, 64, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  64, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=64
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  64, 32, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+            (1): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(32, 128, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=128)
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(128, 32, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+                (shortcut): IdentityLayer()
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  32, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=128
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  128, 32, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+          )
+        )
+        (1): OpSequential(
+          (op_list): ModuleList(
+            (0): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(32, 128, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=128)
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(128, 64, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  32, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=128
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  128, 64, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+            (1): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256)
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+                (shortcut): IdentityLayer()
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  64, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  256, 64, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+            (2): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256)
+                    (norm): StraightThrough()
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+                (shortcut): IdentityLayer()
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  64, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  256, 64, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+          )
+        )
+        (2): OpSequential(
+          (op_list): ModuleList(
+            (0): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1))
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=256)
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  64, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=256
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  256, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+            (1): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False)
+                        (1): Conv2d(384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  256, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    128, 512, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    512, 128, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+            (2): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False)
+                        (1): Conv2d(384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  256, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    128, 512, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    512, 128, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+            (3): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False)
+                        (1): Conv2d(384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      384, 384, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=384, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      384, 384, kernel_size=(1, 1), stride=(1, 1), groups=24, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  256, 128, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    128, 512, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    512, 128, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+          )
+        )
+        (3): OpSequential(
+          (op_list): ModuleList(
+            (0): QauntMBBlock(
+              (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+              (activation_function): StraightThrough()
+              (inv_res): ResidualBlock(
+                (main): MBConv(
+                  (inverted_conv): ConvLayer(
+                    (conv): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1))
+                    (act): Hardswish()
+                  )
+                  (depth_conv): ConvLayer(
+                    (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=512)
+                    (act): Hardswish()
+                  )
+                  (point_conv): ConvLayer(
+                    (conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+                    (norm): StraightThrough()
+                  )
+                )
+              )
+              (conv): Sequential(
+                (0): QuantModule(
+                  128, 512, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (1): QuantModule_Shifted(
+                  512, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=512
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): Hardswish()
+                )
+                (2): QuantModule_Shifted(
+                  512, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+              )
+            )
+            (1): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False)
+                        (1): Conv2d(768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  512, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    256, 1024, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    1024, 256, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+            (2): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False)
+                        (1): Conv2d(768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  512, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    256, 1024, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    1024, 256, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+            (3): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False)
+                        (1): Conv2d(768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  512, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    256, 1024, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    1024, 256, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+            (4): EfficientViTBlock(
+              (context_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): LiteMSA(
+                    (qkv): ConvLayer(
+                      (conv): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                    )
+                    (aggreg): ModuleList(
+                      (0): Sequential(
+                        (0): Conv2d(768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False)
+                        (1): Conv2d(768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False)
+                      )
+                    )
+                    (kernel_func): ReLU()
+                    (proj): ConvLayer(
+                      (conv): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (qkv): QuantModule(
+                  256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (aggreg): ModuleList(
+                  (0): Sequential(
+                    (0): QuantModule(
+                      768, 768, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=768, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                    (1): QuantModule(
+                      768, 768, kernel_size=(1, 1), stride=(1, 1), groups=48, bias=False
+                      (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                      (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                      (activation_function): StraightThrough()
+                    )
+                  )
+                )
+                (proj): QuantModule(
+                  512, 256, kernel_size=(1, 1), stride=(1, 1)
+                  (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                  (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                  (activation_function): StraightThrough()
+                )
+                (kernel_func): ReLU()
+              )
+              (local_module): QauntMBBlock(
+                (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                (activation_function): StraightThrough()
+                (inv_res): ResidualBlock(
+                  (main): MBConv(
+                    (inverted_conv): ConvLayer(
+                      (conv): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+                      (act): Hardswish()
+                    )
+                    (depth_conv): ConvLayer(
+                      (conv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+                      (act): Hardswish()
+                    )
+                    (point_conv): ConvLayer(
+                      (conv): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+                      (norm): StraightThrough()
+                    )
+                  )
+                  (shortcut): IdentityLayer()
+                )
+                (conv): Sequential(
+                  (0): QuantModule(
+                    256, 1024, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (1): QuantModule_Shifted(
+                    1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): Hardswish()
+                  )
+                  (2): QuantModule_Shifted(
+                    1024, 256, kernel_size=(1, 1), stride=(1, 1)
+                    (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+                    (input_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (output_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+                    (activation_function): StraightThrough()
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    (head): ClsHead(
+      (op_list): ModuleList(
+        (0): ConvLayer(
+          (conv): QuantModule(
+            256, 1536, kernel_size=(1, 1), stride=(1, 1)
+            (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+            (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+            (activation_function): Hardswish()
+          )
+          (norm): StraightThrough()
+          (act): StraightThrough()
+        )
+        (1): AdaptiveAvgPool2d(output_size=1)
+        (2): LinearLayer(
+          (linear): QuantModule(
+            in_features=1536, out_features=1600, bias=False
+            (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+            (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+            (activation_function): StraightThrough()
+          )
+          (norm): LayerNorm((1600,), eps=1e-05, elementwise_affine=True)
+          (act): Hardswish()
+        )
+        (3): LinearLayer(
+          (linear): QuantModule(
+            in_features=1600, out_features=1000, bias=True
+            (weight_quantizer): UniformAffineQuantizer(bit=8, scale_method=mse, symmetric=False, channel_wise=True, leaf_param=False)
+            (act_quantizer): UniformAffineQuantizer(bit=12, scale_method=mse, symmetric=False, channel_wise=False, leaf_param=True)
+            (activation_function): StraightThrough()
+          )
+        )
+      )
+    )
+  )
+)
+Test: [  0/782]	Time  1.689 ( 1.689)	Acc@1  90.62 ( 90.62)	Acc@5  96.88 ( 96.88)
+Test: [200/782]	Time  0.492 ( 0.507)	Acc@1  87.50 ( 84.06)	Acc@5  95.31 ( 96.45)
+Test: [400/782]	Time  0.495 ( 0.506)	Acc@1  92.19 ( 81.90)	Acc@5 100.00 ( 95.61)
+Test: [600/782]	Time  0.499 ( 0.504)	Acc@1  81.25 ( 80.17)	Acc@5  96.88 ( 94.66)
+ * Acc@1 79.312 Acc@5 94.344
+Quantized accuracy before brecq: 79.31199645996094
+Reconstruction for layer conv
+Init alpha to be FP32
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=1000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=1500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=2000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=2500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=3000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=3500
+Total loss:	203.086 (rec:0.000, round:203.086)	b=20.00	count=4000
+Total loss:	62.570 (rec:0.000, round:62.570)	b=19.44	count=4500
+Total loss:	51.204 (rec:0.000, round:51.204)	b=18.88	count=5000
+Total loss:	42.389 (rec:0.000, round:42.389)	b=18.31	count=5500
+Total loss:	36.677 (rec:0.000, round:36.677)	b=17.75	count=6000
+Total loss:	31.482 (rec:0.000, round:31.482)	b=17.19	count=6500
+Total loss:	24.626 (rec:0.000, round:24.626)	b=16.62	count=7000
+Total loss:	18.440 (rec:0.000, round:18.440)	b=16.06	count=7500
+Total loss:	14.499 (rec:0.000, round:14.499)	b=15.50	count=8000
+Total loss:	12.624 (rec:0.000, round:12.624)	b=14.94	count=8500
+Total loss:	10.979 (rec:0.000, round:10.979)	b=14.38	count=9000
+Total loss:	8.431 (rec:0.000, round:8.431)	b=13.81	count=9500
+Total loss:	7.457 (rec:0.000, round:7.457)	b=13.25	count=10000
+Total loss:	5.500 (rec:0.000, round:5.500)	b=12.69	count=10500
+Total loss:	4.999 (rec:0.000, round:4.999)	b=12.12	count=11000
+Total loss:	3.519 (rec:0.000, round:3.519)	b=11.56	count=11500
+Total loss:	3.000 (rec:0.000, round:3.000)	b=11.00	count=12000
+Total loss:	3.000 (rec:0.000, round:3.000)	b=10.44	count=12500
+Total loss:	3.000 (rec:0.000, round:3.000)	b=9.88	count=13000
+Total loss:	3.000 (rec:0.000, round:3.000)	b=9.31	count=13500
+Total loss:	3.000 (rec:0.000, round:3.000)	b=8.75	count=14000
+Total loss:	2.960 (rec:0.000, round:2.959)	b=8.19	count=14500
+Total loss:	2.500 (rec:0.000, round:2.500)	b=7.62	count=15000
+Total loss:	2.500 (rec:0.000, round:2.500)	b=7.06	count=15500
+Total loss:	2.500 (rec:0.000, round:2.500)	b=6.50	count=16000
+Total loss:	2.217 (rec:0.000, round:2.217)	b=5.94	count=16500
+Total loss:	1.603 (rec:0.000, round:1.603)	b=5.38	count=17000
+Total loss:	1.000 (rec:0.000, round:1.000)	b=4.81	count=17500
+Total loss:	0.971 (rec:0.000, round:0.970)	b=4.25	count=18000
+Total loss:	0.254 (rec:0.000, round:0.254)	b=3.69	count=18500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=3.12	count=19000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=2.56	count=19500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=2.00	count=20000
+Reconstruction for block 1
+Init alpha to be FP32
+Init alpha to be FP32
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=1000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=1500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=2000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=2500
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=3000
+Total loss:	0.000 (rec:0.000, round:0.000)	b=0.00	count=3500
+Total loss:	172.434 (rec:0.000, round:172.434)	b=20.00	count=4000
+Total loss:	69.493 (rec:0.000, round:69.493)	b=19.44	count=4500
+Total loss:	60.626 (rec:0.000, round:60.625)	b=18.88	count=5000
+Total loss:	54.939 (rec:0.000, round:54.939)	b=18.31	count=5500
+Total loss:	52.354 (rec:0.000, round:52.354)	b=17.75	count=6000
+Total loss:	49.796 (rec:0.000, round:49.796)	b=17.19	count=6500
+Total loss:	45.129 (rec:0.000, round:45.128)	b=16.62	count=7000
+Total loss:	41.878 (rec:0.000, round:41.877)	b=16.06	count=7500
+Total loss:	37.874 (rec:0.000, round:37.874)	b=15.50	count=8000
+Total loss:	32.145 (rec:0.001, round:32.144)	b=14.94	count=8500
+Total loss:	28.500 (rec:0.001, round:28.499)	b=14.38	count=9000
+Total loss:	26.246 (rec:0.001, round:26.245)	b=13.81	count=9500
+Total loss:	22.093 (rec:0.001, round:22.092)	b=13.25	count=10000
+Total loss:	16.701 (rec:0.001, round:16.701)	b=12.69	count=10500
+Total loss:	14.912 (rec:0.001, round:14.912)	b=12.12	count=11000
+Total loss:	11.552 (rec:0.001, round:11.552)	b=11.56	count=11500
+Total loss:	9.246 (rec:0.001, round:9.245)	b=11.00	count=12000
+Total loss:	5.707 (rec:0.001, round:5.706)	b=10.44	count=12500
+Total loss:	4.997 (rec:0.001, round:4.996)	b=9.88	count=13000
+Total loss:	4.501 (rec:0.001, round:4.500)	b=9.31	count=13500
+Total loss:	4.127 (rec:0.001, round:4.127)	b=8.75	count=14000
+Total loss:	3.494 (rec:0.001, round:3.493)	b=8.19	count=14500
+Total loss:	2.325 (rec:0.001, round:2.324)	b=7.62	count=15000
+Total loss:	1.993 (rec:0.001, round:1.992)	b=7.06	count=15500
+Total loss:	1.307 (rec:0.001, round:1.306)	b=6.50	count=16000
+Total loss:	0.658 (rec:0.001, round:0.657)	b=5.94	count=16500
+Total loss:	0.002 (rec:0.002, round:0.000)	b=5.38	count=17000
+Total loss:	0.001 (rec:0.001, round:0.000)	b=4.81	count=17500
+Total loss:	0.001 (rec:0.001, round:0.000)	b=4.25	count=18000
+Total loss:	0.001 (rec:0.001, round:0.000)	b=3.69	count=18500
+Total loss:	0.001 (rec:0.001, round:0.000)	b=3.12	count=19000
+Total loss:	0.002 (rec:0.002, round:0.000)	b=2.56	count=19500
+Total loss:	0.002 (rec:0.002, round:0.000)	b=2.00	count=20000
+Reconstruction for block 0
+Init alpha to be FP32
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=500
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=1000
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=1500
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=2000
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=2500
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=3000
+Total loss:	0.001 (rec:0.001, round:0.000)	b=0.00	count=3500
+Total loss:	428.561 (rec:0.001, round:428.561)	b=20.00	count=4000
+Total loss:	163.099 (rec:0.001, round:163.097)	b=19.44	count=4500
+Total loss:	133.920 (rec:0.001, round:133.919)	b=18.88	count=5000
+Total loss:	119.918 (rec:0.001, round:119.917)	b=18.31	count=5500
+Total loss:	111.904 (rec:0.001, round:111.903)	b=17.75	count=6000
+Total loss:	105.248 (rec:0.001, round:105.246)	b=17.19	count=6500
+Total loss:	97.466 (rec:0.001, round:97.465)	b=16.62	count=7000
+Total loss:	89.064 (rec:0.001, round:89.062)	b=16.06	count=7500
+Total loss:	79.465 (rec:0.001, round:79.464)	b=15.50	count=8000
+Total loss:	70.888 (rec:0.001, round:70.887)	b=14.94	count=8500
+Total loss:	64.009 (rec:0.001, round:64.008)	b=14.38	count=9000
+Total loss:	57.683 (rec:0.002, round:57.682)	b=13.81	count=9500
+Total loss:	52.722 (rec:0.001, round:52.721)	b=13.25	count=10000
+Total loss:	47.523 (rec:0.002, round:47.521)	b=12.69	count=10500
+Total loss:	41.446 (rec:0.002, round:41.445)	b=12.12	count=11000
+Total loss:	35.102 (rec:0.002, round:35.100)	b=11.56	count=11500
+Total loss:	25.658 (rec:0.002, round:25.657)	b=11.00	count=12000
+Total loss:	20.618 (rec:0.002, round:20.616)	b=10.44	count=12500
+Total loss:	18.988 (rec:0.002, round:18.986)	b=9.88	count=13000
+Total loss:	16.620 (rec:0.002, round:16.618)	b=9.31	count=13500
+Total loss:	13.872 (rec:0.002, round:13.869)	b=8.75	count=14000
+Total loss:	11.905 (rec:0.002, round:11.903)	b=8.19	count=14500
+Total loss:	9.291 (rec:0.003, round:9.288)	b=7.62	count=15000
+Total loss:	5.671 (rec:0.003, round:5.667)	b=7.06	count=15500
+Total loss:	4.503 (rec:0.003, round:4.500)	b=6.50	count=16000
+Total loss:	2.924 (rec:0.003, round:2.921)	b=5.94	count=16500
+Total loss:	1.534 (rec:0.004, round:1.531)	b=5.38	count=17000
+Total loss:	0.755 (rec:0.004, round:0.751)	b=4.81	count=17500
+Total loss:	0.101 (rec:0.004, round:0.098)	b=4.25	count=18000
+Total loss:	0.004 (rec:0.004, round:0.000)	b=3.69	count=18500
+Total loss:	0.004 (rec:0.004, round:0.000)	b=3.12	count=19000
+Total loss:	0.004 (rec:0.004, round:0.000)	b=2.56	count=19500
+Total loss:	0.004 (rec:0.004, round:0.000)	b=2.00	count=20000
+Reconstruction for block 1
+Init alpha to be FP32
+Total loss:	0.014 (rec:0.014, round:0.000)	b=0.00	count=500
+Total loss:	0.015 (rec:0.015, round:0.000)	b=0.00	count=1000
+Total loss:	0.016 (rec:0.016, round:0.000)	b=0.00	count=1500
+Total loss:	0.013 (rec:0.013, round:0.000)	b=0.00	count=2000
+Total loss:	0.011 (rec:0.011, round:0.000)	b=0.00	count=2500
+Total loss:	0.013 (rec:0.013, round:0.000)	b=0.00	count=3000
+Total loss:	0.013 (rec:0.013, round:0.000)	b=0.00	count=3500
+Total loss:	1525.215 (rec:0.014, round:1525.201)	b=20.00	count=4000
+Total loss:	551.651 (rec:0.016, round:551.635)	b=19.44	count=4500
+Total loss:	447.490 (rec:0.013, round:447.477)	b=18.88	count=5000
+Total loss:	380.479 (rec:0.016, round:380.463)	b=18.31	count=5500
+Total loss:	339.916 (rec:0.017, round:339.899)	b=17.75	count=6000
+Total loss:	307.936 (rec:0.016, round:307.919)	b=17.19	count=6500
+Total loss:	285.185 (rec:0.014, round:285.171)	b=16.62	count=7000
+Total loss:	263.970 (rec:0.012, round:263.958)	b=16.06	count=7500
+Total loss:	241.276 (rec:0.014, round:241.262)	b=15.50	count=8000
+Total loss:	218.648 (rec:0.013, round:218.635)	b=14.94	count=8500
+Total loss:	192.203 (rec:0.012, round:192.191)	b=14.38	count=9000
+Total loss:	174.925 (rec:0.014, round:174.911)	b=13.81	count=9500
+Total loss:	155.535 (rec:0.014, round:155.520)	b=13.25	count=10000
+Total loss:	140.101 (rec:0.013, round:140.088)	b=12.69	count=10500
+Total loss:	121.007 (rec:0.014, round:120.993)	b=12.12	count=11000
+Total loss:	107.062 (rec:0.014, round:107.048)	b=11.56	count=11500
+Total loss:	89.044 (rec:0.013, round:89.030)	b=11.00	count=12000
+Total loss:	76.689 (rec:0.013, round:76.675)	b=10.44	count=12500
+Total loss:	65.325 (rec:0.013, round:65.312)	b=9.88	count=13000
+Total loss:	54.888 (rec:0.014, round:54.874)	b=9.31	count=13500
+Total loss:	43.051 (rec:0.013, round:43.038)	b=8.75	count=14000
+Total loss:	30.116 (rec:0.014, round:30.102)	b=8.19	count=14500
+Total loss:	18.281 (rec:0.015, round:18.266)	b=7.62	count=15000
+Total loss:	11.551 (rec:0.016, round:11.535)	b=7.06	count=15500
+Total loss:	8.056 (rec:0.015, round:8.042)	b=6.50	count=16000
+Total loss:	5.687 (rec:0.015, round:5.671)	b=5.94	count=16500
+Total loss:	2.345 (rec:0.014, round:2.332)	b=5.38	count=17000
+Total loss:	1.514 (rec:0.014, round:1.500)	b=4.81	count=17500
+Total loss:	0.824 (rec:0.014, round:0.810)	b=4.25	count=18000
+Total loss:	0.151 (rec:0.015, round:0.136)	b=3.69	count=18500
+Total loss:	0.014 (rec:0.014, round:0.000)	b=3.12	count=19000
+Total loss:	0.014 (rec:0.014, round:0.000)	b=2.56	count=19500
+Total loss:	0.015 (rec:0.015, round:0.000)	b=2.00	count=20000
+Reconstruction for block 0
+Init alpha to be FP32
+Total loss:	0.007 (rec:0.007, round:0.000)	b=0.00	count=500
+Total loss:	0.007 (rec:0.007, round:0.000)	b=0.00	count=1000
+Total loss:	0.008 (rec:0.008, round:0.000)	b=0.00	count=1500
+Total loss:	0.007 (rec:0.007, round:0.000)	b=0.00	count=2000
+Total loss:	0.007 (rec:0.007, round:0.000)	b=0.00	count=2500
+Total loss:	0.007 (rec:0.007, round:0.000)	b=0.00	count=3000
+Total loss:	0.008 (rec:0.008, round:0.000)	b=0.00	count=3500
+Total loss:	1746.981 (rec:0.007, round:1746.974)	b=20.00	count=4000
+Total loss:	684.187 (rec:0.008, round:684.178)	b=19.44	count=4500
+Total loss:	593.275 (rec:0.007, round:593.268)	b=18.88	count=5000
+Total loss:	532.441 (rec:0.007, round:532.433)	b=18.31	count=5500
+Total loss:	482.808 (rec:0.007, round:482.800)	b=17.75	count=6000
+Total loss:	445.587 (rec:0.008, round:445.579)	b=17.19	count=6500
+Total loss:	403.084 (rec:0.007, round:403.076)	b=16.62	count=7000
+Total loss:	370.080 (rec:0.008, round:370.073)	b=16.06	count=7500
+Total loss:	334.119 (rec:0.008, round:334.111)	b=15.50	count=8000
+Total loss:	308.227 (rec:0.008, round:308.219)	b=14.94	count=8500
+Total loss:	276.743 (rec:0.008, round:276.735)	b=14.38	count=9000
+Total loss:	240.311 (rec:0.008, round:240.303)	b=13.81	count=9500
+Total loss:	213.672 (rec:0.008, round:213.664)	b=13.25	count=10000
+Total loss:	183.954 (rec:0.009, round:183.945)	b=12.69	count=10500
+Total loss:	164.367 (rec:0.008, round:164.359)	b=12.12	count=11000
+Total loss:	142.322 (rec:0.009, round:142.313)	b=11.56	count=11500
+Total loss:	116.787 (rec:0.009, round:116.778)	b=11.00	count=12000
+Total loss:	93.370 (rec:0.009, round:93.361)	b=10.44	count=12500
+Total loss:	73.382 (rec:0.010, round:73.372)	b=9.88	count=13000
+Total loss:	59.428 (rec:0.009, round:59.419)	b=9.31	count=13500
+Total loss:	45.741 (rec:0.008, round:45.733)	b=8.75	count=14000
+Total loss:	30.597 (rec:0.010, round:30.587)	b=8.19	count=14500
+Total loss:	21.294 (rec:0.009, round:21.285)	b=7.62	count=15000
+Total loss:	15.389 (rec:0.009, round:15.379)	b=7.06	count=15500
+Total loss:	9.585 (rec:0.009, round:9.576)	b=6.50	count=16000
+Total loss:	5.493 (rec:0.009, round:5.484)	b=5.94	count=16500
+Total loss:	2.621 (rec:0.009, round:2.612)	b=5.38	count=17000
+Total loss:	0.772 (rec:0.009, round:0.763)	b=4.81	count=17500
+Total loss:	0.255 (rec:0.009, round:0.246)	b=4.25	count=18000
+Total loss:	0.009 (rec:0.009, round:0.000)	b=3.69	count=18500
+Total loss:	0.009 (rec:0.009, round:0.000)	b=3.12	count=19000
+Total loss:	0.009 (rec:0.009, round:0.000)	b=2.56	count=19500
+Total loss:	0.010 (rec:0.010, round:0.000)	b=2.00	count=20000
+Reconstruction for block 1
+Init alpha to be FP32
+Total loss:	0.015 (rec:0.015, round:0.000)	b=0.00	count=500
+Total loss:	0.015 (rec:0.015, round:0.000)	b=0.00	count=1000
+Total loss:	0.014 (rec:0.014, round:0.000)	b=0.00	count=1500

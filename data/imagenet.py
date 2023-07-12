@@ -3,6 +3,8 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from torchvision.transforms.functional import InterpolationMode
+import math
 
 def build_imagenet_data(data_path: str = '', input_size: int = 224, batch_size: int = 64, workers: int = 4,
                         dist_sample: bool = False):
@@ -17,15 +19,18 @@ def build_imagenet_data(data_path: str = '', input_size: int = 224, batch_size: 
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
-            transforms.RandomResizedCrop(input_size),
-            transforms.RandomHorizontalFlip(),
+            # transforms.RandomResizedCrop(input_size),
+            # transforms.RandomHorizontalFlip(),
+            transforms.Resize(int(math.ceil(input_size/0.95)), interpolation=InterpolationMode.BICUBIC),
+            transforms.CenterCrop(input_size),
             transforms.ToTensor(),
             normalize,
         ]))
     val_dataset = datasets.ImageFolder(
         valdir,
         transforms.Compose([
-            transforms.Resize(256),
+            # transforms.Resize(256),
+            transforms.Resize(int(math.ceil(input_size/0.95)), interpolation=InterpolationMode.BICUBIC),
             transforms.CenterCrop(input_size),
             transforms.ToTensor(),
             normalize,

@@ -46,7 +46,7 @@ class UniformAffineQuantizer(nn.Module):
                  leaf_param: bool = False):
         super(UniformAffineQuantizer, self).__init__()
         self.sym = symmetric
-        assert 2 <= n_bits <= 8, 'bitwidth not supported'
+        # assert 2 <= n_bits <= 8, 'bitwidth not supported'
         self.n_bits = n_bits
         self.n_levels = 2 ** self.n_bits
         self.delta = None
@@ -143,7 +143,7 @@ class UniformAffineQuantizer(nn.Module):
         return x_float_q
 
     def bitwidth_refactor(self, refactored_bit: int):
-        assert 2 <= refactored_bit <= 8, 'bitwidth not supported'
+        # assert 2 <= refactored_bit <= 8, 'bitwidth not supported'
         self.n_bits = refactored_bit
         self.n_levels = 2 ** self.n_bits
 
@@ -189,6 +189,7 @@ class QuantModule(nn.Module):
 
         self.se_module = se_module
         self.extra_repr = org_module.extra_repr
+        self.out = None
 
     def forward(self, input: torch.Tensor):
         if self.use_weight_quant:
@@ -203,10 +204,129 @@ class QuantModule(nn.Module):
         if self.se_module is not None:
             out = self.se_module(out)
         out = self.activation_function(out)
+        self.out = out
         if self.disable_act_quant:
             return out
         if self.use_act_quant:
             out = self.act_quantizer(out)
+        return out
+
+    def set_quant_state(self, weight_quant: bool = False, act_quant: bool = False):
+        self.use_weight_quant = weight_quant
+        self.use_act_quant = act_quant
+
+
+class QuantModule_Shifted(nn.Module):
+    """
+    Quantized Module that can perform quantized convolution or normal convolution.
+    To activate quantization, please use set_quant_state function.
+    """
+    def __init__(self, org_module: Union[nn.Conv2d, nn.Linear], weight_quant_params: dict = {},
+                 act_quant_params: dict = {}, disable_act_quant: bool = False, se_module=None):
+        super(QuantModule_Shifted, self).__init__()
+        if isinstance(org_module, nn.Conv2d):
+            self.fwd_kwargs = dict(stride=org_module.stride, padding=org_module.padding,
+                                   dilation=org_module.dilation, groups=org_module.groups)
+            self.fwd_func = F.conv2d
+        else:
+            self.fwd_kwargs = dict()
+            self.fwd_func = F.linear
+        self.weight = org_module.weight
+        self.org_weight = org_module.weight.data.clone()
+        if org_module.bias is not None:
+            self.bias = org_module.bias
+            self.org_bias = org_module.bias.data.clone()
+        else:
+            self.bias = None
+            self.org_bias = None
+        # de-activate the quantized forward default
+        self.use_weight_quant = False
+        self.use_act_quant = False
+        self.disable_act_quant = disable_act_quant
+        # initialize quantizer
+        self.weight_quantizer = UniformAffineQuantizer(**weight_quant_params)
+        self.input_quantizer = UniformAffineQuantizer(**act_quant_params)
+        self.output_quantizer = UniformAffineQuantizer(**act_quant_params)
+
+        self.activation_function = StraightThrough()
+        self.ignore_reconstruction = False
+
+        self.se_module = se_module
+        self.extra_repr = org_module.extra_repr
+        self.shifted_input = None
+        self.z = None
+
+    def forward(self, input: torch.Tensor):
+        if self.z == None:
+            # ############ shift ############
+            x_max = input.max(axis=2).values
+            x_min = input.min(axis=2).values
+            x_max_max = x_max.max(axis=2).values
+            x_min_min = x_min.min(axis=2).values
+            channel_max = x_max_max.max(axis=0).values
+            channel_min = x_min_min.min(axis=0).values
+            # channel_max = torch.max(input, dim=(0, 2, 3))
+            # channel_min = torch.min(input, dim=(0, 2, 3))
+            self.z = (channel_max + channel_min)/2
+        shifted_input = torch.zeros_like(input, dtype=input.dtype)
+        # for i in range(input.shape[1]):
+        #     shifted_input[:,i,:,:] = input[:,i,:,:] - self.z[i]
+        shifted_input = input - self.z.unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand(input.shape[0], input.shape[1], input.shape[2], input.shape[3])
+        self.shifted_input = shifted_input
+        
+        if self.use_weight_quant:
+            weight = self.weight_quantizer(self.weight)
+            bias = self.bias
+        else:
+            weight = self.org_weight
+            bias = self.org_bias
+        # shifted_bias = torch.zeros_like(bias.max(), dtype=bias.dtype)
+        
+        if weight.shape[1] == 1:
+            # weight_sum_list = []
+            # weight_sum_list.append(torch.sum(weight, dim=(2, 3)))
+            # temp_weight = weight.data.clone()
+            # temp_weight[:,:,0,:] = 0
+            # weight_sum_list.append(torch.sum(temp_weight, dim=(2, 3)))
+            # temp_weight[:,:,:,0] = 0
+            # weight_sum_list.append(torch.sum(temp_weight, dim=(2, 3)))
+            # temp_weight = weight.data.clone()
+            # temp_weight[:,:,:,0] = 0
+            # weight_sum_list.append(torch.sum(temp_weight, dim=(2, 3)))
+            # shifted_bias_list = []
+            # for i in range(len(weight_sum_list)):
+            #     shifted_bias_list.append(torch.mul(torch.squeeze(weight_sum_list[i]), z))
+            diff_input = self.z.unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand(1, input.shape[1], input.shape[2], input.shape[3])
+        else:
+            weight_sum = torch.sum(weight, dim=(2, 3))
+            shifted_bias = torch.squeeze(torch.matmul(weight_sum, torch.unsqueeze(self.z, dim=1)))
+            shifted_bias += bias
+            
+        if self.use_act_quant:
+            shifted_input = self.input_quantizer(shifted_input)
+
+        if weight.shape[1] == 1:
+            out = self.fwd_func(shifted_input, weight, bias, **self.fwd_kwargs)
+            diff_out = self.fwd_func(diff_input, weight, None, **self.fwd_kwargs)
+            out += diff_out.expand(out.shape[0], out.shape[1], out.shape[2], out.shape[3])
+            # out_original = self.fwd_func(input, weight, bias, **self.fwd_kwargs)
+            # out[:,:,1:,1:] += shifted_bias_list[0].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand(out.shape[0], out.shape[1], out.shape[2]-1, out.shape[3]-1)
+            # out[:,:,0,1:] += shifted_bias_list[1].unsqueeze(dim=0).unsqueeze(dim=2).expand(out.shape[0], out.shape[1], out.shape[3]-1)
+            # out[:,:,0,0] += shifted_bias_list[2].unsqueeze(dim=0).expand(out.shape[0], out.shape[1])
+            # out[:,:,1:,0] += shifted_bias_list[3].unsqueeze(dim=0).unsqueeze(dim=2).expand(out.shape[0], out.shape[1], out.shape[2]-1)
+        else:
+            out = self.fwd_func(shifted_input, weight, shifted_bias, **self.fwd_kwargs)
+        
+        # out_original = self.fwd_func(input, weight, bias, **self.fwd_kwargs)
+        # diff = out_original - out
+        # print(diff[0,0,:,:])
+        # disable act quantization is designed for convolution before elemental-wise operation,
+        # in that case, we apply activation function and quantization after ele-wise op.
+        out = self.activation_function(out)
+        if self.disable_act_quant:
+            return out
+        if self.use_act_quant:
+            out = self.output_quantizer(out)
         return out
 
     def set_quant_state(self, weight_quant: bool = False, act_quant: bool = False):

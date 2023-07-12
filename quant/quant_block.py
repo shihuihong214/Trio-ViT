@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from quant.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough
+from quant.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough, QuantModule_Shifted
 from models.resnet import BasicBlock, Bottleneck
 from models.regnet import ResBottleneckBlock
 from models.mobilenetv2 import InvertedResidual
-
+from EfficientViT.models.nn import DSConv, MBConv, EfficientViTBlock, IdentityLayer, ResidualBlock, LiteMSA
+from EfficientViT.plot import plot_distribution
 
 class BaseQuantBlock(nn.Module):
     """
@@ -150,17 +151,18 @@ class QuantInvertedResidual(BaseQuantBlock):
 
         self.use_res_connect = inv_res.use_res_connect
         self.expand_ratio = inv_res.expand_ratio
+        self.plot = False
         if self.expand_ratio == 1:
             self.conv = nn.Sequential(
                 QuantModule(inv_res.conv[0], weight_quant_params, act_quant_params),
-                QuantModule(inv_res.conv[3], weight_quant_params, act_quant_params, disable_act_quant=True),
+                QuantModule(inv_res.conv[3], weight_quant_params, act_quant_params, disable_act_quant=False),
             )
             self.conv[0].activation_function = nn.ReLU6()
         else:
             self.conv = nn.Sequential(
                 QuantModule(inv_res.conv[0], weight_quant_params, act_quant_params),
                 QuantModule(inv_res.conv[3], weight_quant_params, act_quant_params),
-                QuantModule(inv_res.conv[6], weight_quant_params, act_quant_params, disable_act_quant=True),
+                QuantModule(inv_res.conv[6], weight_quant_params, act_quant_params, disable_act_quant=False),
             )
             self.conv[0].activation_function = nn.ReLU6()
             self.conv[1].activation_function = nn.ReLU6()
@@ -173,6 +175,142 @@ class QuantInvertedResidual(BaseQuantBlock):
         out = self.activation_function(out)
         if self.use_act_quant:
             out = self.act_quantizer(out)
+        if self.plot:
+            activation = []
+            activation.append(self.conv[0].out)
+            activation.append(self.conv[1].out)
+            activation.append(self.conv[2].out)
+            plot_distribution(activation, "MBV2")
+            exit()
+        return out
+
+
+# TODO: Support ResidualBlock in EfficientViT
+class QauntMBBlock(BaseQuantBlock):
+    """
+    Implementation of Quantized MB Block in EfficientViT.
+    """
+
+    def __init__(self, inv_res: InvertedResidual, weight_quant_params: dict = {}, act_quant_params: dict = {}, disable_act_quant=False):
+        super().__init__(act_quant_params)
+
+        # self.use_res_connect = inv_res.use_res_connect
+        # self.expand_ratio = inv_res.expand_ratio
+        self.inv_res = inv_res
+        self.plot = False
+        if isinstance(inv_res.main, DSConv):
+            self.conv = nn.Sequential(
+                QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params,),
+                QuantModule(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
+            )
+            # self.conv = nn.Sequential(
+            #     QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params,disable_act_quant=True),
+            #     QuantModule_Shifted(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
+            # )
+            self.conv[0].activation_function = nn.Hardswish()
+        
+        elif isinstance(inv_res.main, MBConv):
+            # self.conv = nn.Sequential(
+            #     QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
+            #     QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
+            #     QuantModule(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
+            # )
+            self.conv = nn.Sequential(
+                QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
+                QuantModule_Shifted(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
+                QuantModule_Shifted(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
+            )
+            self.conv[0].activation_function = nn.Hardswish()
+            self.conv[1].activation_function = nn.Hardswish()
+            self.plot = inv_res.main.plot
+        
+        # FIXME: quantize activation here
+        elif isinstance(inv_res.main, LiteMSA):
+            self.qkv = QuantModule(inv_res.main.qkv.conv, weight_quant_params, act_quant_params, disable_act_quant=True)
+            
+            self.aggreg = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        QuantModule(inv_res.main.aggreg[0][0], weight_quant_params, act_quant_params, disable_act_quant=True),
+                        QuantModule(inv_res.main.aggreg[0][1], weight_quant_params, act_quant_params, disable_act_quant=True)
+                    )
+                ]
+            )
+            
+            self.proj = QuantModule(inv_res.main.proj.conv, weight_quant_params, act_quant_params, disable_act_quant=True)
+            self.kernel_func = nn.ReLU(inplace=False)
+            self.dim = inv_res.main.dim
+    
+    
+    def forward_attn(self, x):
+        B, _, H, W = list(x.size())
+        # print("x.shape: ", x.shape)
+        # generate multi-scale q, k, v
+        qkv = self.qkv(x)
+        multi_scale_qkv = [qkv]
+        for op in self.aggreg:
+            multi_scale_qkv.append(op(qkv))
+        multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
+
+        multi_scale_qkv = torch.reshape(
+            multi_scale_qkv,
+            (
+                B,
+                -1,
+                3 * self.dim,
+                H * W,
+            ),
+        )
+        multi_scale_qkv = torch.transpose(multi_scale_qkv, -1, -2)
+        q, k, v = (
+            multi_scale_qkv[..., 0 : self.dim],
+            multi_scale_qkv[..., self.dim : 2 * self.dim],
+            multi_scale_qkv[..., 2 * self.dim :],
+        )
+
+        # TODO: quantize attn
+        # lightweight global attention
+        q = self.kernel_func(q)
+        k = self.kernel_func(k)
+        # print("q.shape: ", q.shape)
+        trans_k = k.transpose(-1, -2)
+
+        v = F.pad(v, (0, 1), mode="constant", value=1)
+        kv = torch.matmul(trans_k, v)
+        out = torch.matmul(q, kv)
+        out = out[..., :-1] / (out[..., -1:] + 1e-15)
+
+        # final projecttion
+        out = torch.transpose(out, -1, -2)
+        # print("out.shape: ", out.shape)
+        out = torch.reshape(out, (B, -1, H, W))
+        # print("out.shape: ", out.shape)
+        out = self.proj(out) 
+        return out   
+
+
+    def forward(self, x):
+        try:
+            shortcut = isinstance(self.inv_res.shortcut, IdentityLayer)
+        except:
+            shortcut = False
+            
+        if isinstance(self.inv_res.main, LiteMSA):
+            out = self.forward_attn(x) + x
+        elif shortcut:
+            out = x + self.conv(x)
+        else:
+            out = self.conv(x)
+                
+            out = self.activation_function(out)
+        if self.use_act_quant:
+            out = self.act_quantizer(out)
+        if self.plot:
+            activation = []
+            activation.append(self.conv[1].shifted_input)
+            activation.append(self.conv[2].shifted_input)
+            plot_distribution(activation, "Shifted_EViT_Pre_MB")
+            exit()
         return out
 
 
@@ -181,4 +319,5 @@ specials = {
     Bottleneck: QuantBottleneck,
     ResBottleneckBlock: QuantResBottleneckBlock,
     InvertedResidual: QuantInvertedResidual,
+    ResidualBlock: QauntMBBlock
 }

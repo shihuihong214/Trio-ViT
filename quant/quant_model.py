@@ -22,13 +22,21 @@ class QuantModel(nn.Module):
         prev_quantmodule = None
         for name, child_module in module.named_children():
             if type(child_module) in specials:
+                # # TODO:
+                # if name == 'local_module':
+                #     disable_act_quant = False
+                # else:
+                #     disable_act_quant = True
                 setattr(module, name, specials[type(child_module)](child_module, weight_quant_params, act_quant_params))
+                if name == '17':
+                    module.plot = True
 
             elif isinstance(child_module, (nn.Conv2d, nn.Linear)):
                 setattr(module, name, QuantModule(child_module, weight_quant_params, act_quant_params))
                 prev_quantmodule = getattr(module, name)
 
-            elif isinstance(child_module, (nn.ReLU, nn.ReLU6)):
+
+            elif isinstance(child_module, (nn.ReLU, nn.ReLU6, nn.Hardswish)):
                 if prev_quantmodule is not None:
                     prev_quantmodule.activation_function = child_module
                     setattr(module, name, StraightThrough())
@@ -37,6 +45,9 @@ class QuantModel(nn.Module):
 
             elif isinstance(child_module, StraightThrough):
                 continue
+            
+            elif isinstance(child_module, nn.LayerNorm):
+                prev_quantmodule = None
 
             else:
                 self.quant_module_refactor(child_module, weight_quant_params, act_quant_params)
