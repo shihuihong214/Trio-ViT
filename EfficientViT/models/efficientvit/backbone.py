@@ -63,6 +63,7 @@ class EfficientViTBackbone(nn.Module):
                 in_channels = w
             self.stages.append(OpSequential(stage))
             self.width_list.append(in_channels)
+        # block.main.plot = True
         
         for w, d in zip(width_list[3:], depth_list[3:]):
             stage = []
@@ -91,7 +92,7 @@ class EfficientViTBackbone(nn.Module):
             self.stages.append(OpSequential(stage))
             self.width_list.append(in_channels)
         self.stages = nn.ModuleList(self.stages)
-        # self.stages[-1].op_list[-1].local_module.main.plot = True
+        # self.stages[-1].op_list[-1].context_module.main.plot = True
         # block.plot = True
 
     @staticmethod

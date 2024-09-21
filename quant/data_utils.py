@@ -6,7 +6,7 @@ from quant.quant_block import BaseQuantBlock
 
 
 def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBlock], cali_data: torch.Tensor,
-                      asym: bool = False, act_quant: bool = False, batch_size: int = 32, keep_gpu: bool = True):
+                      asym: bool = False, act_quant: bool = False, batch_size: int = 32, keep_gpu: bool = False):
     """
     Save input data and output data of a particular layer/block over calibration dataset.
 

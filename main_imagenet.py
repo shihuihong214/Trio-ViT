@@ -9,6 +9,7 @@ import hubconf
 from quant import *
 from data.imagenet import build_imagenet_data
 from EfficientViT.models.cls_model_zoo import create_cls_model
+from EfficientViT.cal_flops import Cal_FLOPs
 
 def seed_all(seed=1029):
     random.seed(seed)
@@ -153,6 +154,7 @@ if __name__ == '__main__':
 
     # weight calibration parameters
     parser.add_argument('--num_samples', default=1024, type=int, help='size of the calibration dataset')
+    parser.add_argument('--input_size', default=224, type=int, help='input size of the calibration dataset')
     parser.add_argument('--iters_w', default=20000, type=int, help='number of iteration for adaround')
     parser.add_argument('--weight', default=0.01, type=float, help='weight of rounding cost vs the reconstruction loss.')
     parser.add_argument('--sym', action='store_true', help='symmetric reconstruction, not recommended')
@@ -174,24 +176,26 @@ if __name__ == '__main__':
 
     seed_all(args.seed)
     # build imagenet data loader
-    train_loader, test_loader = build_imagenet_data(batch_size=args.batch_size, workers=args.workers,
-                                                    data_path=args.data_path)
+    train_loader, test_loader = build_imagenet_data(batch_size=args.batch_size, workers=args.workers, data_path=args.data_path, input_size=args.input_size)
 
     # load model
     # TODO:
-    cnn = eval('hubconf.{}(pretrained=True)'.format(args.arch))
-    # cnn = create_cls_model(args.model, weight_url=args.weight_url)
-    # print(cnn)
+    # cnn = eval('hubconf.{}(pretrained=True)'.format(args.arch))
+    cnn = create_cls_model(args.model, weight_url=args.weight_url)
+    print(cnn)
+    # Cal_FLOPs(cnn)
+    # exit()
     cnn.cuda()
     cnn.eval()
     # TODO:
-    # if args.test_before_calibration:
-    #     print('Accuracy before qauntization: {}'.format(validate_model(test_loader, cnn)))
+    if args.test_before_calibration:
+        print('Accuracy before qauntization: {}'.format(validate_model(test_loader, cnn)))
+        # exit()
     # # build quantization parameters
     wq_params = {'n_bits': args.n_bits_w, 'channel_wise': args.channel_wise, 'scale_method': 'mse'}
     aq_params = {'n_bits': args.n_bits_a, 'channel_wise': False, 'scale_method': 'mse', 'leaf_param': args.act_quant}
     qnn = QuantModel(model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params)
-    print(qnn)
+    # print(qnn)
     qnn.cuda()
     qnn.eval()
     # if not args.disable_8bit_head_stem:
@@ -201,16 +205,18 @@ if __name__ == '__main__':
     cali_data = get_train_samples(train_loader, num_samples=args.num_samples)
     device = next(qnn.parameters()).device
 
+    # FIXME:
     # Initialize weight quantization parameters
     qnn.set_quant_state(True, False)
     _ = qnn(cali_data[:64].to(device))
-
-    if args.test_before_calibration:
-        print('Quantized accuracy before brecq: {}'.format(validate_model(test_loader, qnn)))
+    # exit()
+    # if args.test_before_calibration:
+    print('Quantized accuracy before brecq:{}'.format(validate_model(test_loader, qnn)))
     # exit()
     # Kwargs for weight rounding calibration
     kwargs = dict(cali_data=cali_data, iters=args.iters_w, weight=args.weight, asym=True,
-                  b_range=(args.b_start, args.b_end), warmup=args.warmup, act_quant=False, opt_mode='mse')
+                  b_range=(args.b_start, args.b_end), warmup=args.warmup, act_quant=False, opt_mode='mse',) 
+                # batch_size=int(args.batch_size/2))
 
     def recon_model(model: nn.Module):
         """
@@ -224,17 +230,20 @@ if __name__ == '__main__':
                 else:
                     print('Reconstruction for layer {}'.format(name))
                     layer_reconstruction(qnn, module, **kwargs)
+                    # pass
             elif isinstance(module, BaseQuantBlock):
                 if module.ignore_reconstruction is True:
                     print('Ignore reconstruction of block {}'.format(name))
                     continue
                 else:
                     print('Reconstruction for block {}'.format(name))
+                    # if name == '0':
                     block_reconstruction(qnn, module, **kwargs)
             else:
                 recon_model(module)
 
     # Start calibration
+    # TODO:
     recon_model(qnn)
     qnn.set_quant_state(weight_quant=True, act_quant=False)
     print('Weight quantization accuracy: {}'.format(validate_model(test_loader, qnn)))
@@ -243,7 +252,7 @@ if __name__ == '__main__':
         # Initialize activation quantization parameters
         qnn.set_quant_state(True, True)
         with torch.no_grad():
-            _ = qnn(cali_data[:128].to(device))
+            _ = qnn(cali_data[:64].to(device))
         # Disable output quantization because network output
         # does not get involved in further computation
         qnn.disable_network_output_quantization()

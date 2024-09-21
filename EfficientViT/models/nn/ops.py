@@ -235,10 +235,18 @@ class MBConv(nn.Module):
         x = self.point_conv(x)
         activation.append(x)
         # plot 
-        if self.plot:
-            plot_distribution(activation, 'EViT_Post_MB')
-            exit()
+        # if self.plot:
+        #     plot_distribution(activation, 'b2/MB/EViT_Post_MB')
+        #     exit()
         return x
+
+
+class MatMul(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, a, b):
+        out = a @ b
+        return out
 
 
 class LiteMSA(nn.Module):
@@ -264,7 +272,7 @@ class LiteMSA(nn.Module):
         use_bias = val2tuple(use_bias, 2)
         norm = val2tuple(norm, 2)
         act_func = val2tuple(act_func, 2)
-
+        self.plot = False
         self.dim = dim
         self.qkv = ConvLayer(
             in_channels,
@@ -295,6 +303,8 @@ class LiteMSA(nn.Module):
             norm=norm[1],
             act_func=act_func[1],
         )
+        self.kv_matmul = MatMul()
+        self.qkv_matmul = MatMul()
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, _, H, W = list(x.size())
@@ -316,6 +326,7 @@ class LiteMSA(nn.Module):
             ),
         )
         multi_scale_qkv = torch.transpose(multi_scale_qkv, -1, -2)
+        # print("multi_scale_qkv.shape: ", multi_scale_qkv.shape)
         q, k, v = (
             multi_scale_qkv[..., 0 : self.dim],
             multi_scale_qkv[..., self.dim : 2 * self.dim],
@@ -329,8 +340,10 @@ class LiteMSA(nn.Module):
         trans_k = k.transpose(-1, -2)
 
         v = F.pad(v, (0, 1), mode="constant", value=1)
-        kv = torch.matmul(trans_k, v)
-        out = torch.matmul(q, kv)
+        # kv = torch.matmul(trans_k, v)
+        # out = torch.matmul(q, kv)
+        kv = self.kv_matmul(trans_k, v)
+        out = self.qkv_matmul(q, kv)
         out = out[..., :-1] / (out[..., -1:] + 1e-15)
 
         # final projecttion

@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import copy
 
-from quant.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough, QuantModule_Shifted
+from quant.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough, QuantModule_Shifted, LogQuantizer, QuantModule_Scaled
 from models.resnet import BasicBlock, Bottleneck
 from models.regnet import ResBottleneckBlock
 from models.mobilenetv2 import InvertedResidual
 from EfficientViT.models.nn import DSConv, MBConv, EfficientViTBlock, IdentityLayer, ResidualBlock, LiteMSA
-from EfficientViT.plot import plot_distribution
+from EfficientViT.plot import plot_distribution, plot_MB_distribution
 
 class BaseQuantBlock(nn.Module):
     """
@@ -32,7 +33,7 @@ class BaseQuantBlock(nn.Module):
         self.use_weight_quant = weight_quant
         self.use_act_quant = act_quant
         for m in self.modules():
-            if isinstance(m, QuantModule):
+            if isinstance(m, (QuantModule, QuantModule_Scaled, QuantModule_Shifted)):
                 m.set_quant_state(weight_quant, act_quant)
 
 
@@ -196,108 +197,339 @@ class QauntMBBlock(BaseQuantBlock):
 
         # self.use_res_connect = inv_res.use_res_connect
         # self.expand_ratio = inv_res.expand_ratio
-        self.inv_res = inv_res
+        # self.inv_res = inv_res
         self.plot = False
+        self.shortcut = isinstance(inv_res.shortcut, IdentityLayer)
+        self.LiteMSA = isinstance(inv_res.main, LiteMSA)
+
         if isinstance(inv_res.main, DSConv):
             self.conv = nn.Sequential(
                 QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params,),
                 QuantModule(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
             )
-            # self.conv = nn.Sequential(
-            #     QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params,disable_act_quant=True),
-            #     QuantModule_Shifted(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
-            # )
             self.conv[0].activation_function = nn.Hardswish()
         
+        # TODO:
         elif isinstance(inv_res.main, MBConv):
             # self.conv = nn.Sequential(
             #     QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
             #     QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
             #     QuantModule(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
             # )
+            # FIXME:
+            # act_quant_params_mb1 = copy.deepcopy(act_quant_params)
+            
+            # act_quant_params_mb1['n_bits'] = 10
             self.conv = nn.Sequential(
+                # QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
+                # QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
                 QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
-                QuantModule_Shifted(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
+                QuantModule_Scaled(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
                 QuantModule_Shifted(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
             )
             self.conv[0].activation_function = nn.Hardswish()
             self.conv[1].activation_function = nn.Hardswish()
             self.plot = inv_res.main.plot
+            # print(self.plot)
+            
+            # self.conv[0].act_quantizer.channel_wise = True
+            # self.conv[0].act_quantizer.is_act = True
+            self.conv[1].enbale_scale = True
+            self.conv[2].enbale_shift = True
+            # self.conv[1].input_quantizer.n_bits = 10
         
         # FIXME: quantize activation here
         elif isinstance(inv_res.main, LiteMSA):
-            self.qkv = QuantModule(inv_res.main.qkv.conv, weight_quant_params, act_quant_params, disable_act_quant=True)
+            self.qkv = QuantModule(inv_res.main.qkv.conv, weight_quant_params, act_quant_params, disable_act_quant=False)
             
             self.aggreg = nn.ModuleList(
                 [
                     nn.Sequential(
-                        QuantModule(inv_res.main.aggreg[0][0], weight_quant_params, act_quant_params, disable_act_quant=True),
-                        QuantModule(inv_res.main.aggreg[0][1], weight_quant_params, act_quant_params, disable_act_quant=True)
+                        QuantModule(inv_res.main.aggreg[0][0], weight_quant_params, act_quant_params, disable_act_quant=False),
+                        QuantModule(inv_res.main.aggreg[0][1], weight_quant_params, act_quant_params, disable_act_quant=False)
                     )
                 ]
             )
             
-            self.proj = QuantModule(inv_res.main.proj.conv, weight_quant_params, act_quant_params, disable_act_quant=True)
+            self.proj = QuantModule(inv_res.main.proj.conv, weight_quant_params, act_quant_params, disable_act_quant=False)
+            
             self.kernel_func = nn.ReLU(inplace=False)
             self.dim = inv_res.main.dim
+            self.plot = inv_res.main.plot
+            
+            self.k_v_quant = nn.Sequential(
+                UniformAffineQuantizer(**act_quant_params),
+                UniformAffineQuantizer(**act_quant_params),
+            )
+            
+            self.k_sum_quant = nn.Sequential(
+                UniformAffineQuantizer(**act_quant_params),
+                UniformAffineQuantizer(**act_quant_params),
+            )
+
+            self.q_kv_quant_N = nn.Sequential(
+                UniformAffineQuantizer(**act_quant_params),
+                UniformAffineQuantizer(**act_quant_params),
+            )
+        
+            # self.q_kv_quant_D = nn.Sequential(
+            #     LogQuantizer(**act_quant_params),
+            #     LogQuantizer(**act_quant_params),
+            # )
+            
+            self.out_quant = nn.Sequential(
+                UniformAffineQuantizer(**act_quant_params),
+                UniformAffineQuantizer(**act_quant_params),
+            )
+
+            self.kv_ratio = [None, None]
+            self.qkv_ratio = [None, None]
+            
+            self.kv_observe = [False, False] 
+            self.qkv_observe = [False, False] 
+            self.msa_quant = False
+            self.enbale_scale = False
+            # TODO:
+            self.enbale_quant = True
+            # self.out_quant = UniformAffineQuantizer(**act_quant_params)
+    
+    def find_outliers(self, x, thresh=1.5):
+        
+        def get_ratio(x):
+            mean = torch.mean(x)
+            div = x/mean
+            power = torch.clamp(torch.round(torch.div(torch.log(div),torch.log(torch.Tensor([2]).cuda ()))), 0, 4)
+            return 2**power
+        
+        max_x = torch.clamp(x.max(axis=3).values.max(axis=2).values.max(axis=0).values, 1, 100000)
+        min_x = torch.clamp(x.min(axis=3).values.min(axis=2).values.min(axis=0).values, -10000, -1)
+        ratio = torch.ones(x.shape[3])
+        global_ratio = torch.ones(x.shape[1], x.shape[3])
+        
+        maximal = max(max_x.max(), (min_x.min()).abs())
+        if maximal == max_x.max():
+            mean = torch.mean(max_x)
+            head_indx = torch.clamp(torch.round(max_x/mean), 1, 8)
+        else:
+            mean = torch.mean(min_x)
+            head_indx = torch.clamp(torch.round(min_x/mean), 1, 8)
+        
+        for indx in range(x.shape[1]):
+            if head_indx[indx] == 1:
+                pass
+            else:
+                max_x_feature = torch.clamp(x[:,indx,:,:].max(axis=1).values.max(axis=0).values, 1, 100000)
+                min_x_feature = torch.clamp(x[:,indx,:,:].min(axis=1).values.min(axis=0).values, -10000, -1)
+                maximal = max(max_x_feature.max(), (min_x_feature.min()).abs())
+                
+                if maximal == max_x_feature.max():
+                    ratio = get_ratio(max_x_feature)
+                    max_x_feature /= ratio
+                    min_x_feature /= ratio
+                    pre_ratio = ratio.clone()
+                    if min_x_feature.min().abs()/max_x_feature.max() > thresh:
+                        ratio = get_ratio(min_x_feature)  
+                        ratio *= pre_ratio
+                else:
+                    ratio = get_ratio(min_x_feature)
+                    max_x_feature /= ratio
+                    min_x_feature /= ratio
+                    pre_ratio = ratio.clone()
+                    if max_x_feature.max()/min_x_feature.min().abs() > thresh:
+                        ratio = get_ratio(max_x_feature)
+                        ratio *= pre_ratio
+                global_ratio[indx,:] = ratio.clone()
+        return global_ratio
+
+
+    def LogQuant(self, x):
+        y = torch.floor(torch.div(torch.log(x),torch.log(torch.Tensor([2]).cuda ())))
+        out = torch.gt(x/(2**y),2**(y+1)/x)
+        y += out
+        # TODO:
+        y = torch.clamp(y, -6, 9)
+        # return 2**y
+        out = 2**y
+        # out[x==0] = 0
+        return out
     
     
     def forward_attn(self, x):
         B, _, H, W = list(x.size())
-        # print("x.shape: ", x.shape)
-        # generate multi-scale q, k, v
-        qkv = self.qkv(x)
-        multi_scale_qkv = [qkv]
-        for op in self.aggreg:
-            multi_scale_qkv.append(op(qkv))
-        multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
+        
+        if self.use_act_quant and self.enbale_quant:
+            qkv = self.qkv(x)
+            multi_scale_qkv = [qkv]
+            for op in self.aggreg:
+                multi_scale_qkv.append(op(qkv))
+            multi_out = []
+            q = [None, None]
+            k = [None, None]
+            trans_k = [None, None]
+            v = [None, None]
+            kv = [None, None]
+            kv_0 = [None, None]
+            kv_1 = [None, None]
+            q_kv = [None, None]
+            q_kv_0 = [None, None]
+            q_kv_1 = [None, None]
+            out = [None, None]
+            trans_out = [None, None]
+            for i in range(len(multi_scale_qkv)):
+                multi_scale_qkv[i] = torch.reshape(
+                    multi_scale_qkv[i],
+                    (
+                        B,
+                        -1,
+                        3 * self.dim,
+                        H * W,
+                    ),
+                )
+                multi_scale_qkv[i] = torch.transpose(multi_scale_qkv[i], -1, -2)
+                if self.plot:
+                    plot_distribution([multi_scale_qkv[i]], "MSA/last_shifted/qkv_"+str(i))
+                    # plot_distribution([out], "MSA/last_shifted/out_quant")
+                q[i], k[i], v[i] = (
+                    multi_scale_qkv[i][..., 0 : self.dim],
+                    multi_scale_qkv[i][..., self.dim : 2 * self.dim],
+                    multi_scale_qkv[i][..., 2 * self.dim :],
+                )
+            
+                # TODO: quantize attn
+                # lightweight global attention
+                q[i] = self.kernel_func(q[i])
+                k[i] = self.kernel_func(k[i])
+                trans_k[i] = k[i].transpose(-1, -2)
 
-        multi_scale_qkv = torch.reshape(
-            multi_scale_qkv,
-            (
-                B,
-                -1,
-                3 * self.dim,
-                H * W,
-            ),
-        )
-        multi_scale_qkv = torch.transpose(multi_scale_qkv, -1, -2)
-        q, k, v = (
-            multi_scale_qkv[..., 0 : self.dim],
-            multi_scale_qkv[..., self.dim : 2 * self.dim],
-            multi_scale_qkv[..., 2 * self.dim :],
-        )
+                v[i] = F.pad(v[i], (0, 1), mode="constant", value=1)
 
-        # TODO: quantize attn
-        # lightweight global attention
-        q = self.kernel_func(q)
-        k = self.kernel_func(k)
-        # print("q.shape: ", q.shape)
-        trans_k = k.transpose(-1, -2)
+                kv[i] = torch.matmul(trans_k[i], v[i]) 
+                # remove outliers
+                if self.kv_observe[i]:
+                    pass
+                else:
+                    self.kv_ratio[i] = self.find_outliers(kv[i][..., :-1])
+                    self.kv_observe[i] = True
+                
+                if self.enbale_scale:
+                    kv[i][..., :-1] /= self.kv_ratio[i].unsqueeze(1).unsqueeze(0).expand(1, kv[i].shape[1], 1, kv[i].shape[3]-1).cuda() 
+                
+                if self.plot:
+                    plot_distribution([kv[i][..., :-1]], "MSA/last_shifted/k*V_"+str(i))
+                kv_0[i] = kv[i][..., :-1]
+                kv_1[i] = kv[i][..., -1:]
+                if self.msa_quant:
+                    kv_0[i] = self.k_v_quant[i](kv_0[i])
+                    kv_1[i] = self.k_sum_quant[i](kv_1[i])
+                    # kv_1[i] = self.LogQuant(kv_1[i])
+                    # self.k_v_quant[i].delta.requires_grad = False
+                    # self.k_sum_quant[i].delta.requires_grad = False
+                
+                q_kv[i] = torch.matmul(q[i], torch.cat([kv_0[i], kv_1[i]], dim=-1))
+                # print(torch.isnan(q_kv[i]).any())
+                # remove outliers
+                if self.qkv_observe[i]:
+                    pass
+                else:
+                    self.qkv_ratio[i] = self.find_outliers(q_kv[i][..., :-1])
+                    self.qkv_observe[i] = True
+                
+                if self.enbale_scale:
+                    q_kv[i][..., :-1] /= self.qkv_ratio[i].unsqueeze(1).unsqueeze(0).expand(1, q_kv[i].shape[1], 1, q_kv[i].shape[3]-1).cuda() 
 
-        v = F.pad(v, (0, 1), mode="constant", value=1)
-        kv = torch.matmul(trans_k, v)
-        out = torch.matmul(q, kv)
-        out = out[..., :-1] / (out[..., -1:] + 1e-15)
+                if self.plot:
+                    plot_distribution([q_kv[i][..., :-1]], "MSA/last_shifted/Q*KV_N_"+str(i))
+                    plot_distribution([q_kv[i][..., -1:]], "MSA/last_shifted/Q*KV_D_"+str(i))
+                q_kv_0[i] = q_kv[i][..., :-1]
+                q_kv_1[i] = q_kv[i][..., -1:]
+                if self.msa_quant:
+                    q_kv_0[i] = self.q_kv_quant_N[i](q_kv_0[i])
+                    # q_kv[i][..., -1:] = self.q_kv_quant_D[i](q_kv[i][...,     -1:])
+                    # self.q_kv_quant_N[i].delta.requires_grad = False
+                    q_kv_1[i] = self.LogQuant(q_kv_1[i])
+                    # print(torch.isnan(q_kv_1[i]).any())
+                
+                out[i] = q_kv_0[i] / (q_kv_1[i] + 1e-5)
+                # print("out[i].max(): ", out[i].max())
+                # print(torch.isnan(out[i]).any())
+                if self.enbale_scale:
+                    # recover outliers
+                    out[i] *= (self.qkv_ratio[i] * self.kv_ratio[i]).unsqueeze(1).unsqueeze(0).expand(1, out[i].shape[1], 1, out[i].shape[3]).cuda()  
+                
+                out[i] = self.out_quant[i](out[i])
+                # self.out_quant[i].delta.requires_grad = False
 
-        # final projecttion
-        out = torch.transpose(out, -1, -2)
-        # print("out.shape: ", out.shape)
-        out = torch.reshape(out, (B, -1, H, W))
-        # print("out.shape: ", out.shape)
-        out = self.proj(out) 
-        return out   
+                # final projecttion
+                trans_out[i] = torch.transpose(out[i], -1, -2)
+                multi_out.append(torch.reshape(trans_out[i], (B, -1, H, W)))
+            
+            multi_out = torch.cat(multi_out, dim=1)
+            final_out = self.proj(multi_out)
+            # print(torch.isnan(final_out).any())
+            if torch.isnan(final_out).any():
+                print("NaN exits!!!!!!")
+                exit()
+        
+            if self.plot:
+                plot_distribution([final_out], "MSA/last_shifted/out")
+                exit()
+        
+        else:   
+            qkv = self.qkv(x)
+            multi_scale_qkv = [qkv]
+            for op in self.aggreg:
+                multi_scale_qkv.append(op(qkv))
+            multi_scale_qkv = torch.cat(multi_scale_qkv, dim=1)
+
+            multi_scale_qkv = torch.reshape(
+                multi_scale_qkv,
+                (
+                    B,
+                    -1,
+                    3 * self.dim,
+                    H * W,
+                ),
+            )
+            multi_scale_qkv = torch.transpose(multi_scale_qkv, -1, -2)
+            q, k, v = (
+                multi_scale_qkv[..., 0 : self.dim],
+                multi_scale_qkv[..., self.dim : 2 * self.dim],
+                multi_scale_qkv[..., 2 * self.dim :],
+            )
+        
+            # TODO: quantize attn
+            # lightweight global attention
+            q = self.kernel_func(q)
+            k = self.kernel_func(k)
+            # print("q.shape: ", q.shape)
+            trans_k = k.transpose(-1, -2)
+
+            v = F.pad(v, (0, 1), mode="constant", value=1)
+            kv = torch.matmul(trans_k, v)
+            out = torch.matmul(q, kv)
+            if self.plot:
+                # plot_distribution([multi_scale_qkv], "MSA/last_shifted/QKV")
+                # plot_distribution([kv], "MSA/last_shifted/K*V")
+                plot_distribution([out[:,:16,:, -1:]], "b1-224/MSA/last/Q*KV")
+                exit()
+            out = out[..., :-1] / (out[..., -1:] + 1e-15)
+
+            # final projecttion
+            out = torch.transpose(out, -1, -2)
+            out = torch.reshape(out, (B, -1, H, W))
+            final_out = self.proj(out) 
+            # if self.plot:
+            #     plot_distribution([out], "MSA/last_shifted/out")
+            #     exit()
+        
+        return final_out   
 
 
     def forward(self, x):
-        try:
-            shortcut = isinstance(self.inv_res.shortcut, IdentityLayer)
-        except:
-            shortcut = False
             
-        if isinstance(self.inv_res.main, LiteMSA):
+        if self.LiteMSA:
             out = self.forward_attn(x) + x
-        elif shortcut:
+        elif self.shortcut:
             out = x + self.conv(x)
         else:
             out = self.conv(x)
@@ -306,10 +538,11 @@ class QauntMBBlock(BaseQuantBlock):
         if self.use_act_quant:
             out = self.act_quantizer(out)
         if self.plot:
-            activation = []
-            activation.append(self.conv[1].shifted_input)
-            activation.append(self.conv[2].shifted_input)
-            plot_distribution(activation, "Shifted_EViT_Pre_MB")
+            plot_MB_distribution([self.conv[0].input], "b1-224/MB_2/Original_EViT_Post_MB_0")
+            plot_MB_distribution([self.conv[1].scaled_input], "b1-224/MB_2/Scaled_EViT_Post_MB_1")
+            plot_MB_distribution([self.conv[2].shifted_input], "b1-224/MB_2/Shifted_EViT_Post_MB_2")
+            # plot_MB_distribution([self.conv[2].out], "b1-224/MB_2/Original_EViT_Post_MB_2")
+            # plot_MB_distribution([self.conv[3].shifted_input], "b1/MB_New/Scaled_Relax_Shifted_V2_EViT_Post_MB")
             exit()
         return out
 

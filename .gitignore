@@ -41,3 +41,9 @@ Thumbs.db
 # Ignore ImageNet Pre-trained Models #
 ######################################
 *ImageNet/checkpoint/*
+logs/
+figs/
+EfficientViT/checkpoints
+EfficientViT/__pycache__
+__pycache__
+.vscode

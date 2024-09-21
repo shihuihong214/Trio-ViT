@@ -12,6 +12,8 @@ from linklink.dist_helper import dist_init, allaverage
 from data.imagenet import build_imagenet_data
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from EfficientViT.models.cls_model_zoo import create_cls_model
+
 
 def seed_all(seed=1029):
     random.seed(seed)
@@ -78,7 +80,7 @@ def accuracy(output, target, topk=(1,)):
 
 
 @torch.no_grad()
-def validate_model(test_loader, ann, print_freq=100):
+def validate_model(test_loader, ann, print_freq=300):
     batch_time = AverageMeter(0)
     losses = AverageMeter(0)
     top1 = AverageMeter(0)
@@ -147,33 +149,39 @@ def main_worker(gpu,ngpus_per_node,args):
     dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                             world_size=args.world_size,rank=args.rank)
     torch.cuda.set_device(args.gpu)
-    cnn = eval('hubconf.{}(pretrained=True)'.format(args.arch))
+    # cnn = eval('hubconf.{}(pretrained=True)'.format(args.arch))
+    cnn = create_cls_model(args.model, weight_url=args.weight_url)
     cnn.cuda()
     cnn.eval()
     # build quantization parameters
-    wq_params = {'n_bits': args.n_bits_w, 'channel_wise': args.channel_wise, 'scale_method': 'mse'}
-    aq_params = {'n_bits': args.n_bits_a, 'channel_wise': False, 'scale_method': 'mse', 'leaf_param': args.act_quant}
+    # FIXME:
+    wq_params = {'n_bits': args.n_bits_w, 'channel_wise': args.channel_wise, 'scale_method': 'max'}
+    aq_params = {'n_bits': args.n_bits_a, 'channel_wise': False, 'scale_method': 'max', 'leaf_param': args.act_quant}
     qnn = QuantModel(model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params)
     qnn.cuda()
     qnn.eval()
     if not args.disable_8bit_head_stem:
         print('Setting the first and the last layer to 8-bit')
         qnn.set_first_last_layer_to_8bit()
-    train_loader, test_loader = build_imagenet_data(batch_size=args.batch_size, workers=args.workers,
+    # FIXME:
+    train_loader, test_loader = build_imagenet_data(batch_size=args.batch_size//2, workers=args.workers, input_size=args.input_size,
                                                     data_path=args.data_path, dist_sample=(ngpus_per_node > 1))
 
     cali_data = get_train_samples(train_loader, num_samples=int(args.num_samples / ngpus_per_node))
     torch.backends.cudnn.benchmark = False
     # Initialize weight quantization parameters
     device = next(qnn.parameters()).device
+    # FIXME:
     qnn.set_quant_state(True, False)
     _ = qnn(cali_data[:64].cuda())
     if args.test_before_calibration:
+        print('Accuracy before quantization: {}'.format(validate_model(test_loader, cnn)))
         print('Quantized accuracy before brecq: {}'.format(validate_model(test_loader, qnn)))
     # Kwargs for weight rounding calibration
-    kwargs = dict(cali_data=cali_data, iters=args.iters_w, weight=args.weight, asym=True,
+    kwargs = dict(cali_data=cali_data, iters=args.iters_w//ngpus_per_node, weight=args.weight, asym=True,
                   b_range=(args.b_start, args.b_end), warmup=args.warmup, act_quant=False, opt_mode='mse',
-                  multi_gpu=ngpus_per_node >1)
+                  multi_gpu=ngpus_per_node >1,
+                  batch_size=args.batch_size)
 
     def recon_model(model: nn.Module):
         """
@@ -213,8 +221,9 @@ def main_worker(gpu,ngpus_per_node,args):
         # does not get involved in further computation
 
         # Kwargs for activation rounding calibration
-        kwargs = dict(cali_data=cali_data, iters=args.iters_a, act_quant=True, opt_mode='mse', lr=args.lr, p=args.p,
-                      multi_gpu=ngpus_per_node > 1)
+        kwargs = dict(cali_data=cali_data, iters=args.iters_a//ngpus_per_node, act_quant=True, opt_mode='mse', lr=args.lr, p=args.p,
+                      multi_gpu=ngpus_per_node > 1,
+                      batch_size=args.batch_size)
         recon_model(qnn)
         qnn.disable_network_output_quantization()
         qnn.set_quant_state(weight_quant=True, act_quant=True)
@@ -228,7 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=1005, type=int, help='random seed for results reproduction')
     parser.add_argument('--arch', default='resnet18', type=str, help='dataset name',
                         choices=['resnet18', 'resnet50', 'mobilenetv2', 'regnetx_600m', 'regnetx_3200m', 'mnasnet'])
-    parser.add_argument('--batch_size', default=64, type=int, help='mini-batch size for data loader')
+    parser.add_argument('--batch_size', default=16, type=int, help='mini-batch size for data loader')
     parser.add_argument('--workers', default=4, type=int, help='number of workers for data loader')
     parser.add_argument('--data_path', default='', type=str, help='path to ImageNet data', required=True)
 
@@ -242,7 +251,8 @@ if __name__ == '__main__':
 
     # weight calibration parameters
     parser.add_argument('--num_samples', default=1024, type=int, help='size of the calibration dataset')
-    parser.add_argument('--iters_w', default=20000, type=int, help='number of iteration for adaround')
+    parser.add_argument('--input_size', default=224, type=int, help='input size of the calibration dataset')
+    parser.add_argument('--iters_w', default=40000, type=int, help='number of iteration for adaround')
     parser.add_argument('--weight', default=0.01, type=float,
                         help='weight of rounding cost vs the reconstruction loss.')
     parser.add_argument('--sym', action='store_true', help='symmetric reconstruction, not recommended')
@@ -263,6 +273,9 @@ if __name__ == '__main__':
     parser.add_argument('--dist-backend', default='nccl', type=str, help='')
     parser.add_argument('--rank', default=0, type=int, help='')
     parser.add_argument('--world_size', default=1, type=int, help='')
+    # EfficientViT
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--weight_url", type=str, default=None)
     args = parser.parse_args()
     seed_all(args.seed)
 

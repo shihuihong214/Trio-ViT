@@ -1,6 +1,6 @@
 import torch.nn as nn
 from quant.quant_block import specials, BaseQuantBlock
-from quant.quant_layer import QuantModule, StraightThrough
+from quant.quant_layer import QuantModule, StraightThrough, QuantModule_Shifted, QuantModule_Scaled
 from quant.fold_bn import search_fold_and_remove_bn
 
 
@@ -28,8 +28,8 @@ class QuantModel(nn.Module):
                 # else:
                 #     disable_act_quant = True
                 setattr(module, name, specials[type(child_module)](child_module, weight_quant_params, act_quant_params))
-                if name == '17':
-                    module.plot = True
+                # if name == '17':
+                #     module[17].plot = True
 
             elif isinstance(child_module, (nn.Conv2d, nn.Linear)):
                 setattr(module, name, QuantModule(child_module, weight_quant_params, act_quant_params))
@@ -54,7 +54,7 @@ class QuantModel(nn.Module):
 
     def set_quant_state(self, weight_quant: bool = False, act_quant: bool = False):
         for m in self.model.modules():
-            if isinstance(m, (QuantModule, BaseQuantBlock)):
+            if isinstance(m, (QuantModule, BaseQuantBlock, QuantModule_Shifted, QuantModule_Scaled)):
                 m.set_quant_state(weight_quant, act_quant)
 
     def forward(self, input):

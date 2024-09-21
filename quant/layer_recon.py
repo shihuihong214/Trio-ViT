@@ -69,12 +69,13 @@ def layer_reconstruction(model: QuantModel, layer: QuantModule, cali_data: torch
         cached_grads = save_grad_data(model, layer, cali_data, act_quant, batch_size=batch_size)
     else:
         cached_grads = None
-    device = 'cuda'
+    # device = 'cuda'
+    device = next(model.parameters()).device
     for i in range(iters):
         idx = torch.randperm(cached_inps.size(0))[:batch_size]
-        cur_inp = cached_inps[idx]
-        cur_out = cached_outs[idx]
-        cur_grad = cached_grads[idx] if opt_mode != 'mse' else None
+        cur_inp = cached_inps[idx].to(device)
+        cur_out = cached_outs[idx].to(device)
+        cur_grad = cached_grads[idx].to(device) if opt_mode != 'mse' else None
 
         optimizer.zero_grad()
         out_quant = layer(cur_inp)

@@ -1,6 +1,6 @@
 import torch
 import linklink as link
-from quant.quant_layer import QuantModule, StraightThrough, lp_loss
+from quant.quant_layer import QuantModule, StraightThrough, lp_loss, QuantModule_Shifted, QuantModule_Scaled
 from quant.quant_model import QuantModel
 from quant.quant_block import BaseQuantBlock
 from quant.adaptive_rounding import AdaRoundQuantizer
@@ -31,9 +31,12 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
     :param p: L_p norm minimization
     :param multi_gpu: use multi-GPU or not, if enabled, we should sync the gradients
     """
+    # TODO:
     model.set_quant_state(False, False)
     block.set_quant_state(True, act_quant)
     round_mode = 'learned_hard_sigmoid'
+    msa_params = None
+
 
     if not include_act_func:
         org_act_func = block.activation_function
@@ -42,7 +45,7 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
     if not act_quant:
         # Replace weight quantizer to AdaRoundQuantizer
         for name, module in block.named_modules():
-            if isinstance(module, QuantModule):
+            if isinstance(module, (QuantModule, QuantModule_Scaled, QuantModule_Shifted)):
                 module.weight_quantizer = AdaRoundQuantizer(uaq=module.weight_quantizer, round_mode=round_mode,
                                                             weight_tensor=module.org_weight.data)
                 module.weight_quantizer.soft_targets = True
@@ -50,7 +53,7 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
         # Set up optimizer
         opt_params = []
         for name, module in block.named_modules():
-            if isinstance(module, QuantModule):
+            if isinstance(module, (QuantModule, QuantModule_Scaled, QuantModule_Shifted)):
                 opt_params += [module.weight_quantizer.alpha]
         optimizer = torch.optim.Adam(opt_params)
         scheduler = None
@@ -61,9 +64,24 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
         else:
             opt_params = []
         for name, module in block.named_modules():
+            if name == 'qkv':
+                msa_params = []
+                block.msa_quant = False
             if isinstance(module, QuantModule):
                 if module.act_quantizer.delta is not None:
                     opt_params += [module.act_quantizer.delta]
+            elif isinstance(module, (QuantModule_Scaled, QuantModule_Shifted)):
+                if module.input_quantizer.delta is not None:
+                    opt_params += [module.input_quantizer.delta]
+                if module.output_quantizer.delta is not None:
+                    opt_params += [module.output_quantizer.delta]
+                    # pass
+            # TODO:
+            elif name == 'k_v_quant' or name == 'q_kv_quant_N' or name == 'out_quant':
+                if module[0].delta is not None:
+                    msa_params += [module[0].delta]
+                if module[1].delta is not None:
+                    msa_params += [module[1].delta]
         optimizer = torch.optim.Adam(opt_params, lr=lr)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=iters, eta_min=0.)
 
@@ -79,7 +97,8 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
         cached_grads = save_grad_data(model, block, cali_data, act_quant, batch_size=batch_size)
     else:
         cached_grads = None
-    device = 'cuda'
+    # device = 'cuda'
+    device = next(model.parameters()).device
     for i in range(iters):
         idx = torch.randperm(cached_inps.size(0))[:batch_size]
         cur_inp = cached_inps[idx].to(device)
@@ -91,9 +110,13 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
 
         err = loss_func(out_quant, cur_out, cur_grad)
         err.backward(retain_graph=True)
+        # for p in opt_params:
+        #     print(p.grad.type)
         if multi_gpu:
             for p in opt_params:
                 link.allreduce(p.grad)
+        # TODO: gradient normalization
+        # torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'])
         optimizer.step()
         if scheduler:
             scheduler.step()
@@ -108,6 +131,42 @@ def block_reconstruction(model: QuantModel, block: BaseQuantBlock, cali_data: to
     # Reset original activation function
     if not include_act_func:
         block.activation_function = org_act_func
+
+    if msa_params:
+        print('Qauntizing MSA!!!')
+        optimizer = torch.optim.Adam(msa_params, lr=lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=iters, eta_min=0.)
+        block.msa_quant = True
+        for i in range(iters):
+            idx = torch.randperm(cached_inps.size(0))[:batch_size]
+            cur_inp = cached_inps[idx].to(device)
+            cur_out = cached_outs[idx].to(device)
+            cur_grad = cached_grads[idx].to(device) if opt_mode != 'mse' else None
+
+            optimizer.zero_grad()
+            out_quant = block(cur_inp)
+
+            err = loss_func(out_quant, cur_out, cur_grad)
+            err.backward(retain_graph=True)
+            if multi_gpu:
+                for p in msa_params:
+                    link.allreduce(p.grad)
+            # TODO: gradient normalization
+            # torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'])
+            optimizer.step()
+            if scheduler:
+                scheduler.step()
+
+        torch.cuda.empty_cache()
+
+        # Finish optimization, use hard rounding.
+        for name, module in block.named_modules():
+            if isinstance(module, QuantModule):
+                module.weight_quantizer.soft_targets = False
+
+        # Reset original activation function
+        if not include_act_func:
+            block.activation_function = org_act_func
 
 
 class LossFunction:

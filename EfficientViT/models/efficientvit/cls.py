@@ -58,7 +58,7 @@ def efficientvit_cls_b1(**kwargs) -> EfficientViTCls:
 
 
 def efficientvit_cls_b2(**kwargs) -> EfficientViTCls:
-    from models.efficientvit.backbone import efficientvit_backbone_b2
+    from EfficientViT.models.efficientvit.backbone import efficientvit_backbone_b2
     backbone = efficientvit_backbone_b2(**kwargs)
 
     head = ClsHead(
@@ -71,7 +71,7 @@ def efficientvit_cls_b2(**kwargs) -> EfficientViTCls:
 
 
 def efficientvit_cls_b3(**kwargs) -> EfficientViTCls:
-    from models.efficientvit.backbone import efficientvit_backbone_b3
+    from EfficientViT.models.efficientvit.backbone import efficientvit_backbone_b3
     backbone = efficientvit_backbone_b3(**kwargs)
 
     head = ClsHead(
