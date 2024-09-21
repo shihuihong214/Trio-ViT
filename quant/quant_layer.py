@@ -98,13 +98,6 @@ class UniformAffineQuantizer(nn.Module):
             else:
                 self.delta, self.zero_point = self.init_quantization_scale(x, self.channel_wise)
             self.inited = True
-
-        # start quantization
-        # TODO:
-        # PoT_delta = round_power_of_2(self.delta)
-        # x_int = round_ste(x / PoT_delta) + self.zero_point
-        # x_quant = torch.clamp(x_int, 0, self.n_levels - 1)
-        # x_dequant = (x_quant - self.zero_point) * PoT_delta
         
         x_int = round_ste(x / self.delta) + self.zero_point
         x_quant = torch.clamp(x_int, 0, self.n_levels - 1)
@@ -170,23 +163,6 @@ class UniformAffineQuantizer(nn.Module):
                 delta = torch.tensor(delta).type_as(x)
 
             elif self.scale_method == 'mse':
-                # if self.sym:
-                #     x_max = x.max()
-                #     x_min = x.min()
-                #     sym_max = max(x_max.abs(), x_min.abs())
-                #     best_score = 1e+10
-                #     for i in range(80):
-                #         nwe_sym_max = sym_max * (1.0 - (i * 0.01))
-                #         # new_min = x_min * (1.0 - (i * 0.01))
-                #         x_q = self.quantize(x, nwe_sym_max, -nwe_sym_max)
-                #         # L_p norm minimization as described in LAPQ
-                #         # https://arxiv.org/abs/1911.07190
-                #         score = lp_loss(x, x_q, p=2.4, reduction='all')
-                #         if score < best_score:
-                #             best_score = score
-                #             delta = 2*nwe_sym_max / (2 ** self.n_bits - 1)
-                #             zero_point = (nwe_sym_max-nwe_sym_max).round()
-                # else:
                 x_max = x.max()
                 x_min = x.min()
                 best_score = 1e+10
