@@ -12,10 +12,10 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {
-                "CUDA_VISIBLE_DEVICES": "1"  
+                "CUDA_VISIBLE_DEVICES": "2"  
             },
-            "args": ["--data_path", "/home/shared_data/imagenet/",
-            "--arch", "mobilenetv2", "--n_bits_w", "8", "--channel_wise", "--n_bits_a", "8", "--model", "b1-r224", "--act_quant",  "--test_before_calibration", 
+            "args": ["--data_path", "/data/imagenet/",
+            "--arch", "mobilenetv2", "--n_bits_w", "8", "--channel_wise", "--n_bits_a", "8", "--model", "b1-r224", "--act_quant", 
         ]
         }
     ]
