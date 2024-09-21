@@ -211,15 +211,6 @@ class QauntMBBlock(BaseQuantBlock):
         
         # TODO:
         elif isinstance(inv_res.main, MBConv):
-            # self.conv = nn.Sequential(
-            #     QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
-            #     QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
-            #     QuantModule(inv_res.main.point_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=disable_act_quant),
-            # )
-            # FIXME:
-            # act_quant_params_mb1 = copy.deepcopy(act_quant_params)
-            
-            # act_quant_params_mb1['n_bits'] = 10
             self.conv = nn.Sequential(
                 # QuantModule(inv_res.main.inverted_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=False),
                 # QuantModule(inv_res.main.depth_conv.conv, weight_quant_params, act_quant_params, disable_act_quant=True),
@@ -230,7 +221,6 @@ class QauntMBBlock(BaseQuantBlock):
             self.conv[0].activation_function = nn.Hardswish()
             self.conv[1].activation_function = nn.Hardswish()
             self.plot = inv_res.main.plot
-            # print(self.plot)
             
             # self.conv[0].act_quantizer.channel_wise = True
             # self.conv[0].act_quantizer.is_act = True
@@ -271,11 +261,6 @@ class QauntMBBlock(BaseQuantBlock):
                 UniformAffineQuantizer(**act_quant_params),
                 UniformAffineQuantizer(**act_quant_params),
             )
-        
-            # self.q_kv_quant_D = nn.Sequential(
-            #     LogQuantizer(**act_quant_params),
-            #     LogQuantizer(**act_quant_params),
-            # )
             
             self.out_quant = nn.Sequential(
                 UniformAffineQuantizer(**act_quant_params),
@@ -293,54 +278,6 @@ class QauntMBBlock(BaseQuantBlock):
             self.enbale_quant = True
             # self.out_quant = UniformAffineQuantizer(**act_quant_params)
     
-    def find_outliers(self, x, thresh=1.5):
-        
-        def get_ratio(x):
-            mean = torch.mean(x)
-            div = x/mean
-            power = torch.clamp(torch.round(torch.div(torch.log(div),torch.log(torch.Tensor([2]).cuda ()))), 0, 4)
-            return 2**power
-        
-        max_x = torch.clamp(x.max(axis=3).values.max(axis=2).values.max(axis=0).values, 1, 100000)
-        min_x = torch.clamp(x.min(axis=3).values.min(axis=2).values.min(axis=0).values, -10000, -1)
-        ratio = torch.ones(x.shape[3])
-        global_ratio = torch.ones(x.shape[1], x.shape[3])
-        
-        maximal = max(max_x.max(), (min_x.min()).abs())
-        if maximal == max_x.max():
-            mean = torch.mean(max_x)
-            head_indx = torch.clamp(torch.round(max_x/mean), 1, 8)
-        else:
-            mean = torch.mean(min_x)
-            head_indx = torch.clamp(torch.round(min_x/mean), 1, 8)
-        
-        for indx in range(x.shape[1]):
-            if head_indx[indx] == 1:
-                pass
-            else:
-                max_x_feature = torch.clamp(x[:,indx,:,:].max(axis=1).values.max(axis=0).values, 1, 100000)
-                min_x_feature = torch.clamp(x[:,indx,:,:].min(axis=1).values.min(axis=0).values, -10000, -1)
-                maximal = max(max_x_feature.max(), (min_x_feature.min()).abs())
-                
-                if maximal == max_x_feature.max():
-                    ratio = get_ratio(max_x_feature)
-                    max_x_feature /= ratio
-                    min_x_feature /= ratio
-                    pre_ratio = ratio.clone()
-                    if min_x_feature.min().abs()/max_x_feature.max() > thresh:
-                        ratio = get_ratio(min_x_feature)  
-                        ratio *= pre_ratio
-                else:
-                    ratio = get_ratio(min_x_feature)
-                    max_x_feature /= ratio
-                    min_x_feature /= ratio
-                    pre_ratio = ratio.clone()
-                    if max_x_feature.max()/min_x_feature.min().abs() > thresh:
-                        ratio = get_ratio(max_x_feature)
-                        ratio *= pre_ratio
-                global_ratio[indx,:] = ratio.clone()
-        return global_ratio
-
 
     def LogQuant(self, x):
         y = torch.floor(torch.div(torch.log(x),torch.log(torch.Tensor([2]).cuda ())))
@@ -386,9 +323,7 @@ class QauntMBBlock(BaseQuantBlock):
                     ),
                 )
                 multi_scale_qkv[i] = torch.transpose(multi_scale_qkv[i], -1, -2)
-                if self.plot:
-                    plot_distribution([multi_scale_qkv[i]], "MSA/last_shifted/qkv_"+str(i))
-                    # plot_distribution([out], "MSA/last_shifted/out_quant")
+                
                 q[i], k[i], v[i] = (
                     multi_scale_qkv[i][..., 0 : self.dim],
                     multi_scale_qkv[i][..., self.dim : 2 * self.dim],
@@ -405,41 +340,17 @@ class QauntMBBlock(BaseQuantBlock):
 
                 kv[i] = torch.matmul(trans_k[i], v[i]) 
                 # remove outliers
-                if self.kv_observe[i]:
-                    pass
-                else:
-                    self.kv_ratio[i] = self.find_outliers(kv[i][..., :-1])
-                    self.kv_observe[i] = True
                 
-                if self.enbale_scale:
-                    kv[i][..., :-1] /= self.kv_ratio[i].unsqueeze(1).unsqueeze(0).expand(1, kv[i].shape[1], 1, kv[i].shape[3]-1).cuda() 
-                
-                if self.plot:
-                    plot_distribution([kv[i][..., :-1]], "MSA/last_shifted/k*V_"+str(i))
                 kv_0[i] = kv[i][..., :-1]
                 kv_1[i] = kv[i][..., -1:]
                 if self.msa_quant:
                     kv_0[i] = self.k_v_quant[i](kv_0[i])
                     kv_1[i] = self.k_sum_quant[i](kv_1[i])
                     # kv_1[i] = self.LogQuant(kv_1[i])
-                    # self.k_v_quant[i].delta.requires_grad = False
-                    # self.k_sum_quant[i].delta.requires_grad = False
                 
                 q_kv[i] = torch.matmul(q[i], torch.cat([kv_0[i], kv_1[i]], dim=-1))
                 # print(torch.isnan(q_kv[i]).any())
-                # remove outliers
-                if self.qkv_observe[i]:
-                    pass
-                else:
-                    self.qkv_ratio[i] = self.find_outliers(q_kv[i][..., :-1])
-                    self.qkv_observe[i] = True
-                
-                if self.enbale_scale:
-                    q_kv[i][..., :-1] /= self.qkv_ratio[i].unsqueeze(1).unsqueeze(0).expand(1, q_kv[i].shape[1], 1, q_kv[i].shape[3]-1).cuda() 
-
-                if self.plot:
-                    plot_distribution([q_kv[i][..., :-1]], "MSA/last_shifted/Q*KV_N_"+str(i))
-                    plot_distribution([q_kv[i][..., -1:]], "MSA/last_shifted/Q*KV_D_"+str(i))
+    
                 q_kv_0[i] = q_kv[i][..., :-1]
                 q_kv_1[i] = q_kv[i][..., -1:]
                 if self.msa_quant:
@@ -452,9 +363,6 @@ class QauntMBBlock(BaseQuantBlock):
                 out[i] = q_kv_0[i] / (q_kv_1[i] + 1e-5)
                 # print("out[i].max(): ", out[i].max())
                 # print(torch.isnan(out[i]).any())
-                if self.enbale_scale:
-                    # recover outliers
-                    out[i] *= (self.qkv_ratio[i] * self.kv_ratio[i]).unsqueeze(1).unsqueeze(0).expand(1, out[i].shape[1], 1, out[i].shape[3]).cuda()  
                 
                 out[i] = self.out_quant[i](out[i])
                 # self.out_quant[i].delta.requires_grad = False
