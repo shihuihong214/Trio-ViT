@@ -9,7 +9,7 @@ import hubconf
 from quant import *
 from data.imagenet import build_imagenet_data
 from EfficientViT.models.cls_model_zoo import create_cls_model
-from EfficientViT.cal_flops import Cal_FLOPs
+# from EfficientViT.cal_flops import Cal_FLOPs
 
 def seed_all(seed=1029):
     random.seed(seed)
