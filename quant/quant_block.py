@@ -8,7 +8,7 @@ from models.resnet import BasicBlock, Bottleneck
 from models.regnet import ResBottleneckBlock
 from models.mobilenetv2 import InvertedResidual
 from EfficientViT.models.nn import DSConv, MBConv, EfficientViTBlock, IdentityLayer, ResidualBlock, LiteMSA
-from EfficientViT.plot import plot_distribution, plot_MB_distribution
+# from EfficientViT.plot import plot_distribution, plot_MB_distribution
 
 class BaseQuantBlock(nn.Module):
     """
@@ -176,13 +176,13 @@ class QuantInvertedResidual(BaseQuantBlock):
         out = self.activation_function(out)
         if self.use_act_quant:
             out = self.act_quantizer(out)
-        if self.plot:
-            activation = []
-            activation.append(self.conv[0].out)
-            activation.append(self.conv[1].out)
-            activation.append(self.conv[2].out)
-            plot_distribution(activation, "MBV2")
-            exit()
+        # if self.plot:
+        #     activation = []
+        #     activation.append(self.conv[0].out)
+        #     activation.append(self.conv[1].out)
+        #     activation.append(self.conv[2].out)
+        #     plot_distribution(activation, "MBV2")
+        #     exit()
         return out
 
 
@@ -378,9 +378,9 @@ class QauntMBBlock(BaseQuantBlock):
                 print("NaN exits!!!!!!")
                 exit()
         
-            if self.plot:
-                plot_distribution([final_out], "MSA/last_shifted/out")
-                exit()
+            # if self.plot:
+            #     plot_distribution([final_out], "MSA/last_shifted/out")
+            #     exit()
         
         else:   
             qkv = self.qkv(x)
@@ -415,11 +415,11 @@ class QauntMBBlock(BaseQuantBlock):
             v = F.pad(v, (0, 1), mode="constant", value=1)
             kv = torch.matmul(trans_k, v)
             out = torch.matmul(q, kv)
-            if self.plot:
-                # plot_distribution([multi_scale_qkv], "MSA/last_shifted/QKV")
-                # plot_distribution([kv], "MSA/last_shifted/K*V")
-                plot_distribution([out[:,:16,:, -1:]], "b1-224/MSA/last/Q*KV")
-                exit()
+            # if self.plot:
+            #     # plot_distribution([multi_scale_qkv], "MSA/last_shifted/QKV")
+            #     # plot_distribution([kv], "MSA/last_shifted/K*V")
+            #     plot_distribution([out[:,:16,:, -1:]], "b1-224/MSA/last/Q*KV")
+            #     exit()
             out = out[..., :-1] / (out[..., -1:] + 1e-15)
 
             # final projecttion
@@ -445,13 +445,13 @@ class QauntMBBlock(BaseQuantBlock):
             out = self.activation_function(out)
         if self.use_act_quant:
             out = self.act_quantizer(out)
-        if self.plot:
-            plot_MB_distribution([self.conv[0].input], "b1-224/MB_2/Original_EViT_Post_MB_0")
-            plot_MB_distribution([self.conv[1].scaled_input], "b1-224/MB_2/Scaled_EViT_Post_MB_1")
-            plot_MB_distribution([self.conv[2].shifted_input], "b1-224/MB_2/Shifted_EViT_Post_MB_2")
-            # plot_MB_distribution([self.conv[2].out], "b1-224/MB_2/Original_EViT_Post_MB_2")
-            # plot_MB_distribution([self.conv[3].shifted_input], "b1/MB_New/Scaled_Relax_Shifted_V2_EViT_Post_MB")
-            exit()
+        # if self.plot:
+        #     plot_MB_distribution([self.conv[0].input], "b1-224/MB_2/Original_EViT_Post_MB_0")
+        #     plot_MB_distribution([self.conv[1].scaled_input], "b1-224/MB_2/Scaled_EViT_Post_MB_1")
+        #     plot_MB_distribution([self.conv[2].shifted_input], "b1-224/MB_2/Shifted_EViT_Post_MB_2")
+        #     # plot_MB_distribution([self.conv[2].out], "b1-224/MB_2/Original_EViT_Post_MB_2")
+        #     # plot_MB_distribution([self.conv[3].shifted_input], "b1/MB_New/Scaled_Relax_Shifted_V2_EViT_Post_MB")
+        #     exit()
         return out
 
 
